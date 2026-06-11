@@ -1,0 +1,2 @@
+# Python3.14 code
+playwright==1.59.0
