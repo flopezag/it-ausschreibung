@@ -9,6 +9,13 @@ from analyse.models import Tender
 from analyse.storage import load_seen_urls, save_results_csv, save_seen_urls
 
 
+def _bucket_name_for_keyword(keyword: str | Iterable[str] | dict[str, str]) -> str:
+    if isinstance(keyword, dict):
+        return ", ".join([str(v) for v in keyword.values()])
+    if isinstance(keyword, str):
+        return keyword
+    return ", ".join([str(v) for v in keyword])
+
 
 def find_new_tenders(tenders: Iterable[Tender], seen_urls: set[str]) -> list[Tender]:
     """Filter out tenders that have already been seen.
@@ -92,7 +99,8 @@ def monitor(keyword: str | Iterable[str] | dict[str, str], seen_file: str | Path
     print(f"Monitoring IT-Ausschreibung tenders for keyword: {display}")
 
     tenders = search_tenders(keyword=keyword, headless=headless)
-    seen_urls = load_seen_urls(seen_file)
+    bucket_name = _bucket_name_for_keyword(keyword)
+    seen_urls = load_seen_urls(seen_file, keyword=bucket_name)
     new_tenders = [tender for tender in tenders if tender.url not in seen_urls]
 
     if csv_file:
@@ -105,6 +113,6 @@ def monitor(keyword: str | Iterable[str] | dict[str, str], seen_file: str | Path
         # send_email_alert(subject, body)
         print(f"Email alert sent with subject: {subject}\n\n{body}")
 
-    save_seen_urls([tender.url for tender in tenders], seen_file)
+    save_seen_urls([tender.url for tender in tenders], seen_file, keyword=bucket_name)
     return new_tenders
 

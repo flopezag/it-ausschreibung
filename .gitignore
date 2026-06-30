@@ -33,3 +33,6 @@ Thumbs.db
 
 # Local files
 seen.json
+
+# Backup files
+*.old

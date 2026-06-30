@@ -18,9 +18,12 @@
 - [ ] Add support for multiple search pages or pagination in `analyse.browser_search.search_tenders()`.
 - [ ] Add a configuration file option for SMTP settings and default file locations.
 - [ ] Add a mode to run monitor only once without modifying `seen.json` for dry runs.
-- [ ] Improve `seen.json` persistence so multiple keyword runs preserve previously seen URLs instead of overwriting the file.
+- [x] Improve `seen.json` persistence so multiple keyword runs preserve previously seen URLs instead of overwriting the file.
   - Implementation note: merge new URLs into the existing seen set instead of replacing the file on each run.
   - Implementation note: support per-keyword buckets or a global URL set so unrelated keyword scans do not clear previous results.
+- [ ] Implementation note: keep bucketed search metadata explicit in `seen.json` for faster membership checks and to support backwards-compatible global list loading.
+  - Implementation note: normalize and deduplicate URLs before saving so equivalent URLs do not create duplicate entries.
+  - Implementation note: add tests covering both legacy global-list and new bucketed `seen.json` formats.
 - [ ] Improve tender search scalability to handle growing result volumes over time (pagination, incremental search, or filtered search).
   - Implementation note: add paged browsing in `analyse.browser_search.search_tenders()` and stop when no new results are returned.
   - Implementation note: add filter options (date range, category, or keywords) so users can narrow searches as tender volume increases.

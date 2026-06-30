@@ -88,6 +88,48 @@ def test_seen_urls_roundtrip(tmp_path):
     assert analyse.load_seen_urls(seen_file) == {"a", "b"}
 
 
+def test_seen_urls_merge_existing_entries(tmp_path):
+    seen_file = tmp_path / "seen.json"
+
+    analyse.save_seen_urls(["https://example.com/old"], seen_file)
+    analyse.save_seen_urls(["https://example.com/new"], seen_file)
+
+    assert analyse.load_seen_urls(seen_file) == {
+        "https://example.com/old",
+        "https://example.com/new",
+    }
+
+
+def test_seen_urls_preserves_previous_keyword_batch(tmp_path):
+    seen_file = tmp_path / "seen.json"
+
+    analyse.save_seen_urls(["https://example.com/old"], seen_file, keyword="penetration")
+    analyse.save_seen_urls(["https://example.com/new"], seen_file, keyword="penetration")
+
+    assert analyse.load_seen_urls(seen_file, keyword="penetration") == {
+        "https://example.com/old",
+        "https://example.com/new",
+    }
+
+
+def test_seen_urls_supports_keyword_buckets(tmp_path):
+    seen_file = tmp_path / "seen.json"
+
+    analyse.save_seen_urls(["https://example.com/cloud"], seen_file, keyword="cloud")
+    analyse.save_seen_urls(["https://example.com/security"], seen_file, keyword="security")
+
+    assert analyse.load_seen_urls(seen_file, keyword="cloud") == {
+        "https://example.com/cloud",
+    }
+    assert analyse.load_seen_urls(seen_file, keyword="security") == {
+        "https://example.com/security",
+    }
+    assert analyse.load_seen_urls(seen_file) == {
+        "https://example.com/cloud",
+        "https://example.com/security",
+    }
+
+
 def test_find_new_tenders():
     tenders = [
         Tender("Old", "https://example.com/old"),

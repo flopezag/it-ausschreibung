@@ -2,16 +2,66 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Iterable
+from typing import Any, Iterable
 
 
-def load_seen_urls(seen_file: str | Path) -> set[str]:
-    """Load a set of seen tender URLs from a JSON file.
+def _load_seen_payload(path: Path) -> Any:
+    """Read raw JSON from the seen URLs file.
+
+    Parameters
+    ----------
+    path : Path
+        Path to the JSON file containing seen URLs.
+
+    Returns
+    -------
+    Any
+        Parsed JSON payload, or an empty dict on missing or invalid content.
+    """
+    if not path.exists():
+        return {}
+
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return {}
+
+
+def _normalize_seen_data(data: Any) -> dict[str, set[str]]:
+    """Normalize raw seen-file data into keyword buckets.
+
+    Parameters
+    ----------
+    data : Any
+        Raw parsed JSON from the seen URLs file.
+
+    Returns
+    -------
+    dict[str, set[str]]
+        A mapping from keyword bucket to a set of normalized URLs.
+    """
+    if isinstance(data, dict):
+        buckets: dict[str, set[str]] = {}
+        for keyword, values in data.items():
+            if isinstance(values, list):
+                buckets[str(keyword)] = {str(item) for item in values}
+        return buckets
+
+    if isinstance(data, list):
+        return {"__global__": {str(item) for item in data}}
+
+    return {}
+
+
+def load_seen_urls(seen_file: str | Path, keyword: str | None = None) -> set[str]:
+    """Load seen tender URLs from a JSON file.
 
     Parameters
     ----------
     seen_file : str | Path
         Path to the JSON file containing seen URLs.
+    keyword : str | None, optional
+        Optional keyword bucket to read. When omitted, the global set of URLs is returned.
 
     Returns
     -------
@@ -19,21 +69,18 @@ def load_seen_urls(seen_file: str | Path) -> set[str]:
         Set of URLs that were already seen.
     """
     path = Path(seen_file)
-    if not path.exists():
-        return set()
+    buckets = _normalize_seen_data(_load_seen_payload(path))
 
-    try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError:
-        return set()
+    if keyword is None:
+        return set().union(*buckets.values()) if buckets else set()
 
-    if not isinstance(data, list):
-        return set()
+    if str(keyword) in buckets:
+        return buckets[str(keyword)]
 
-    return {str(item) for item in data}
+    return buckets.get("__global__", set())
 
 
-def save_seen_urls(urls: Iterable[str], seen_file: str | Path) -> None:
+def save_seen_urls(urls: Iterable[str], seen_file: str | Path, keyword: str | None = None) -> None:
     """Save a collection of seen URLs to a JSON file.
 
     Parameters
@@ -42,10 +89,27 @@ def save_seen_urls(urls: Iterable[str], seen_file: str | Path) -> None:
         URLs to store.
     seen_file : str | Path
         Path to the JSON file that will store seen URLs.
+    keyword : str | None, optional
+        Optional keyword bucket to update. When omitted, the global bucket is used.
     """
     path = Path(seen_file)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(sorted(set(urls)), indent=2), encoding="utf-8")
+
+    buckets = _normalize_seen_data(_load_seen_payload(path))
+    bucket_name = "__global__" if keyword is None else str(keyword)
+    existing_urls = buckets.get(bucket_name, set())
+    updated_urls = existing_urls | {str(url) for url in urls}
+    buckets[bucket_name] = updated_urls
+
+    if keyword is None and len(buckets) == 1 and "__global__" in buckets:
+        path.write_text(json.dumps(sorted(updated_urls), indent=2), encoding="utf-8")
+        return
+
+    payload: dict[str, list[str]] = {}
+    for name, values in buckets.items():
+        payload[name] = sorted(values)
+
+    path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
 
 def save_results_csv(tenders: Iterable["models.Tender"], output_file: str | Path) -> None:
