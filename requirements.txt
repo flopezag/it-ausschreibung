@@ -1,2 +1,2 @@
-# Python3.14 code
-playwright==1.59.0
+# Python3.14.7 code
+playwright==1.63.0

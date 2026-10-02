@@ -36,3 +36,8 @@ seen.json
 
 # Backup files
 *.old
+
+# Execution data results
+*.json
+*.csv
+*.bk
