@@ -86,6 +86,7 @@ def test_theme_configuration_contains_requested_keywords_and_cpv_codes():
                 "BSI IT-Grundschutz",
                 "Penetrationstest",
                 "SIEM",
+                "CRA",
             ),
             ("48000000-8", "72000000-5", "32000000-3"),
         ),
@@ -213,10 +214,20 @@ def test_search_uses_theme_cpv_and_filters_by_publication_date(
         "https://dtvp.de/old",
         "AI",
     )
+    fresh = DtvpAnnouncement(
+        "03.08.2026",
+        "",
+        "New announcement",
+        "Tender",
+        "City",
+        "Künstliche Intelligenz",
+        "https://dtvp.de/new",
+        "AI",
+    )
     monkeypatch.setattr(
         dtvp_analysis,
         "_extract_page_announcements",
-        lambda page, keyword, theme: [recent, old],
+        lambda page, keyword, theme: [recent, old, fresh],
     )
     themes = (
         DtvpTheme("AI", ("Künstliche Intelligenz",), ("48000000-8",)),
@@ -224,8 +235,10 @@ def test_search_uses_theme_cpv_and_filters_by_publication_date(
     )
 
     assert dtvp_analysis.search_dtvp_announcements(
-        themes=themes, published_since=date(2026, 8, 2)
-    ) == [recent]
+        themes=themes,
+        published_since=date(2026, 8, 2),
+        seen_keys={announcement_identity(recent)},
+    ) == [recent, fresh]
     assert fake_playwright.browser.page.keywords == ["Künstliche Intelligenz", "Drohne"]
     assert fake_playwright.browser.page.cpv_payloads == [
         [{"code": "48000000-8", "name": "Software package and information systems"}],
@@ -238,6 +251,9 @@ def test_search_uses_theme_cpv_and_filters_by_publication_date(
         ],
     ]
     output = capsys.readouterr().out
+    assert "Recent announcement" not in output
+    assert "Old announcement" not in output
+    assert "New announcement" in output
     assert f"{dtvp_analysis.THEME_COLOR}Monitoring DTVP theme: AI{dtvp_analysis.COLOR_RESET}" in output
     assert (
         f"{dtvp_analysis.THEME_COLOR}Monitoring DTVP theme: Robotics"
@@ -251,11 +267,17 @@ def test_search_uses_theme_cpv_and_filters_by_publication_date(
         f"{dtvp_analysis.KEYWORD_COLOR}Monitoring DTVP keyword: Drohne"
         f"{dtvp_analysis.COLOR_RESET}"
     ) in output
+    assert "Timing DTVP keyword 'Künstliche Intelligenz':" in output
+    assert "Timing DTVP keyword 'Drohne':" in output
+    assert "1 page(s)" in output
+    assert "DTVP search completed in " in output
     assert output.count(dtvp_analysis.THEME_COLOR) == 2
     assert output.count(dtvp_analysis.KEYWORD_COLOR) == 2
-    assert (
-        f"\n\n\n\n\n{dtvp_analysis.THEME_COLOR}Monitoring DTVP theme: Robotics"
-        in output
+    assert output.index("Timing DTVP keyword 'Künstliche Intelligenz':") < output.index(
+        f"{dtvp_analysis.THEME_COLOR}Monitoring DTVP theme: Robotics"
+    )
+    assert output.index("Timing DTVP keyword 'Drohne':") < output.index(
+        "DTVP search completed in "
     )
 
 
@@ -284,12 +306,12 @@ def test_parse_announcement_row_skips_empty_or_non_result_rows():
     assert parse_announcement_row(["only", "two"], "cloud") is None
 
 
-def test_merge_announcement_collects_all_matching_keywords_and_themes():
-    announcements: dict[tuple[str, str], DtvpAnnouncement] = {}
+def test_merge_announcement_deduplicates_url_and_collects_metadata():
+    announcements: dict[str, DtvpAnnouncement] = {}
     first = DtvpAnnouncement(
         "24.06.2026",
         "nv",
-        "2FA application",
+        "Updated announcement title",
         "Tender",
         "City",
         "Penetrationstest",
@@ -311,7 +333,9 @@ def test_merge_announcement_collects_all_matching_keywords_and_themes():
     merge_announcement(announcements, second)
     merge_announcement(announcements, first)
 
-    merged = announcements[(first.title, first.url or "")]
+    merged = announcements[announcement_identity(first)]
+    assert len(announcements) == 1
+    assert merged.title == first.title
     assert merged.keyword == "Penetrationstest; Robotik"
     assert merged.theme == "Cybersecurity; Robotics"
 
@@ -385,7 +409,7 @@ def test_seen_announcements_persist_json_and_backup_previous_file(tmp_path: Path
     assert load_seen_announcements(seen_file) == []
     save_seen_announcements([first], seen_file)
     previous_content = seen_file.read_text(encoding="utf-8")
-    save_seen_announcements([first, second], seen_file)
+    save_seen_announcements([first, second, first], seen_file)
 
     assert backup.read_text(encoding="utf-8") == previous_content
     assert load_seen_announcements(seen_file) == [first, second]
@@ -393,6 +417,60 @@ def test_seen_announcements_persist_json_and_backup_previous_file(tmp_path: Path
     assert "Jährliche Überprüfung" in saved_text
     assert r"\u00e4" not in saved_text
     assert json.loads(saved_text)[0]["url"] == first.url
+
+
+def test_save_seen_announcements_deduplicates_same_url_with_different_titles(
+    tmp_path: Path,
+):
+    seen_file = tmp_path / "seen_dtvp.json"
+    original = DtvpAnnouncement(
+        "24.06.2026",
+        "nv",
+        "Original title",
+        "Tender",
+        "City",
+        "Quantencomputer",
+        "https://dtvp.de/same-project",
+        "Quantum",
+    )
+    repeated = DtvpAnnouncement(
+        "24.06.2026",
+        "nv",
+        "Different listing title",
+        "Tender",
+        "City",
+        "Quantensoftware",
+        "https://dtvp.de/same-project",
+        "Quantum",
+    )
+
+    save_seen_announcements([original, repeated], seen_file)
+
+    saved = load_seen_announcements(seen_file)
+    assert len(saved) == 1
+    assert saved[0].title == "Original title"
+    assert saved[0].keyword == "Quantencomputer; Quantensoftware"
+
+
+def test_save_seen_announcements_cleans_duplicate_metadata(tmp_path: Path):
+    seen_file = tmp_path / "seen_dtvp.json"
+    announcement = DtvpAnnouncement(
+        "24.06.2026",
+        "nv",
+        "AI software project",
+        "Tender",
+        "City",
+        "Künstliche Intelligenz; Digitale Identität; Künstliche Intelligenz",
+        "https://dtvp.de/duplicate-metadata",
+        "AI; Software; AI; Software",
+    )
+
+    save_seen_announcements([announcement], seen_file)
+
+    saved = load_seen_announcements(seen_file)
+    assert len(saved) == 1
+    assert saved[0].keyword == "Künstliche Intelligenz; Digitale Identität"
+    assert saved[0].theme == "AI; Software"
 
 
 @pytest.mark.parametrize("content", ["", " \n\t"])
@@ -417,3 +495,33 @@ def test_announcement_identity_prefers_url():
     announcement = DtvpAnnouncement("24.06.2026", "nv", "Title", "Tender", "City", "KI", "https://dtvp.de/1")
 
     assert announcement_identity(announcement) == "https://dtvp.de/1"
+
+
+def test_main_summary_distinguishes_history_total_from_new_announcements(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+):
+    existing = [
+        DtvpAnnouncement(
+            "24.06.2026", "", f"Existing {index}", "", "", "", f"https://dtvp.de/{index}"
+        )
+        for index in range(2)
+    ]
+    new = DtvpAnnouncement(
+        "25.06.2026", "", "New announcement", "", "", "", "https://dtvp.de/new"
+    )
+    monkeypatch.setattr("sys.argv", ["analyse.dtvp_analysis"])
+    monkeypatch.setattr(dtvp_analysis, "load_seen_announcements", lambda path: existing)
+    monkeypatch.setattr(
+        dtvp_analysis,
+        "search_dtvp_announcements",
+        lambda **kwargs: [new],
+    )
+    monkeypatch.setattr(
+        dtvp_analysis, "save_seen_announcements", lambda announcements, path: None
+    )
+
+    dtvp_analysis.main()
+
+    assert capsys.readouterr().out == (
+        "History contains 3 announcements total; 1 new announcement this run.\n"
+    )

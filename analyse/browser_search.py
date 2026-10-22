@@ -51,41 +51,30 @@ def extract_tenders_from_page(page, base_url: str = BASE_URL) -> list[Tender]:
     return [Tender(title=title, url=url) for url, title in unique.items()]
 
 
-def search_tenders(keyword: str | Iterable[str] | dict[str, str], headless: bool = True) -> list[Tender]:
-    """Search tenders on it-ausschreibung.de.
+def _normalize_keywords(keyword: str | Iterable[str] | dict[str, str]) -> list[str]:
+    if isinstance(keyword, dict):
+        return [value for value in keyword.values() if isinstance(value, str) and value]
+    if isinstance(keyword, str):
+        return [keyword] if keyword else []
+    return [value for value in keyword if isinstance(value, str) and value]
 
-    Parameters
-    ----------
-    keyword : str | Iterable[str] | dict[str, str]
-        Keyword or keywords to search for.
-    headless : bool, optional
-        Whether to run the browser in headless mode, by default True.
 
-    Returns
-    -------
-    list[Tender]
-        Tenders matching the search criteria.
-    """
+def search_tenders_by_keyword(
+    keyword: str | Iterable[str] | dict[str, str], headless: bool = True
+) -> dict[str, list[Tender]]:
+    """Search tenders and preserve which keyword returned each tender."""
     if sync_playwright is None:
         raise RuntimeError(
             "Playwright is not installed. Run: pip install playwright && python -m playwright install"
         )
 
-    if isinstance(keyword, dict):
-        keywords = [str(v) for v in keyword.values() if isinstance(v, str) and v]
-    elif isinstance(keyword, str):
-        keywords = [keyword]
-    else:
-        keywords = [str(v) for v in keyword if isinstance(v, str) and v]
-
+    keywords = _normalize_keywords(keyword)
     if not keywords:
-        return []
+        return {}
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=headless)
-
-        unique: dict[str, str] = {}
-
+        results: dict[str, list[Tender]] = {}
         for kw in keywords:
             page = browser.new_page()
             page.goto(SEARCH_URL, wait_until="domcontentloaded")
@@ -100,11 +89,20 @@ def search_tenders(keyword: str | Iterable[str] | dict[str, str], headless: bool
             page.locator("input[type='text']").first.fill(kw)
             page.get_by_role("button", name="Suche").first.click()
             page.wait_for_load_state("networkidle")
-
-            for tender in extract_tenders_from_page(page):
-                unique[tender.url] = tender.title
-
+            results[kw] = extract_tenders_from_page(page)
             page.close()
 
         browser.close()
-    return [Tender(title=title, url=url) for url, title in unique.items()]
+    return results
+
+
+def search_tenders(
+    keyword: str | Iterable[str] | dict[str, str], headless: bool = True
+) -> list[Tender]:
+    """Search tenders on it-ausschreibung.de and deduplicate URLs."""
+    results_by_keyword = search_tenders_by_keyword(keyword, headless=headless)
+    unique: dict[str, Tender] = {}
+    for tenders in results_by_keyword.values():
+        for tender in tenders:
+            unique[tender.url] = tender
+    return list(unique.values())

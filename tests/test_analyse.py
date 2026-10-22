@@ -8,6 +8,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import pytest
 import analyse
 from analyse import Tender
+from analyse import cli as analyse_cli
+from analyse import browser_search
+from analyse.monitor import monitor
 
 
 class FakeLink:
@@ -60,6 +63,71 @@ def test_extract_tenders_filters_navigation_and_duplicates():
     ]
 
 
+def test_search_tenders_by_keyword_preserves_keyword_matches(monkeypatch):
+    class FakeLocator:
+        def __init__(self, page):
+            self.page = page
+            self.first = self
+
+        def click(self, timeout=None):
+            pass
+
+        def fill(self, value):
+            self.page.keyword = value
+
+    class FakePage:
+        def __init__(self):
+            self.keyword = ""
+
+        def goto(self, url, wait_until):
+            pass
+
+        def get_by_role(self, role, name):
+            return FakeLocator(self)
+
+        def locator(self, selector):
+            return FakeLocator(self)
+
+        def wait_for_load_state(self, state):
+            pass
+
+        def close(self):
+            pass
+
+    class FakeBrowser:
+        def new_page(self):
+            return FakePage()
+
+        def close(self):
+            pass
+
+    class FakePlaywright:
+        def __init__(self):
+            self.chromium = self
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            pass
+
+        def launch(self, headless):
+            return FakeBrowser()
+
+    expected = {
+        "KI": [Tender("AI tender", "https://example.com/ai")],
+        "atex": [Tender("Safety tender", "https://example.com/safety")],
+    }
+    monkeypatch.setattr(browser_search, "sync_playwright", FakePlaywright)
+    monkeypatch.setattr(
+        browser_search,
+        "extract_tenders_from_page",
+        lambda page: expected[page.keyword],
+    )
+
+    assert browser_search.search_tenders_by_keyword(["KI", "atex"]) == expected
+
+
 def test_save_results_csv(tmp_path):
     output = tmp_path / "results.csv"
     analyse.save_results_csv(
@@ -92,12 +160,30 @@ def test_seen_urls_merge_existing_entries(tmp_path):
     seen_file = tmp_path / "seen.json"
 
     analyse.save_seen_urls(["https://example.com/old"], seen_file)
+    previous_content = seen_file.read_text(encoding="utf-8")
     analyse.save_seen_urls(["https://example.com/new"], seen_file)
 
+    assert Path(f"{seen_file}.bk").read_text(encoding="utf-8") == previous_content
     assert analyse.load_seen_urls(seen_file) == {
         "https://example.com/old",
         "https://example.com/new",
     }
+
+
+def test_seen_urls_noop_save_preserves_last_changed_backup(tmp_path):
+    seen_file = tmp_path / "seen.json"
+
+    analyse.save_seen_urls(["https://example.com/old"], seen_file)
+    previous_content = seen_file.read_text(encoding="utf-8")
+    analyse.save_seen_urls(["https://example.com/new"], seen_file)
+    updated_content = seen_file.read_text(encoding="utf-8")
+    backup_file = Path(f"{seen_file}.bk")
+    assert backup_file.read_text(encoding="utf-8") == previous_content
+
+    analyse.save_seen_urls(["https://example.com/old"], seen_file)
+
+    assert seen_file.read_text(encoding="utf-8") == updated_content
+    assert backup_file.read_text(encoding="utf-8") == previous_content
 
 
 def test_seen_urls_preserves_previous_keyword_batch(tmp_path):
@@ -162,6 +248,23 @@ def test_build_email_body_accepts_multiple_keywords():
     assert "IT Security Consultancy" in body
 
 
+def test_build_email_body_lists_keywords_that_matched_each_tender():
+    first = Tender("First tender", "https://example.com/first")
+    second = Tender("Second tender", "https://example.com/second")
+
+    body = analyse.build_email_body(
+        {"AI": ("KI", "chatbot"), "Robotics": ("atex",)},
+        [first, second],
+        {
+            first.url: ["KI", "chatbot"],
+            second.url: ["atex"],
+        },
+    )
+
+    assert "Matched keyword(s): KI, chatbot" in body
+    assert "Matched keyword(s): atex" in body
+
+
 def test_parse_keyword_arg_splits_comma_separated_values():
     parsed = analyse.parse_keyword_arg("penetration, it security, cloud")
     assert parsed == ["penetration", "it security", "cloud"]
@@ -170,6 +273,135 @@ def test_parse_keyword_arg_splits_comma_separated_values():
 def test_parse_keyword_arg_parses_json_dict():
     parsed = analyse.parse_keyword_arg('{"a":"penetration","b":"it security"}')
     assert parsed == {"a": "penetration", "b": "it security"}
+
+
+def test_monitor_searches_all_theme_groups_and_deduplicates_results(
+    tmp_path, monkeypatch, capsys
+):
+    seen_file = tmp_path / "seen.json"
+    theme_groups = {
+        "AI": ("chatbot", "llm"),
+        "Quantum": ("qml",),
+    }
+    previously_seen = Tender("Previously seen", "https://example.com/seen")
+    shared = Tender("Shared result", "https://example.com/shared")
+    new = Tender("New result", "https://example.com/new")
+    analyse.save_seen_urls([previously_seen.url], seen_file, keyword="AI")
+    search_results = {
+        ("chatbot", "llm"): {
+            "chatbot": [previously_seen, shared],
+            "llm": [shared],
+        },
+        ("qml",): {"qml": [shared, new]},
+    }
+    calls = []
+
+    def fake_search(keyword, headless):
+        calls.append((keyword, headless))
+        return search_results[tuple(keyword)]
+
+    monkeypatch.setitem(
+        monitor.__globals__, "search_tenders_by_keyword", fake_search
+    )
+
+    new_tenders = monitor(theme_groups, seen_file, headless=False)
+
+    assert calls == [(["chatbot", "llm"], False), (["qml"], False)]
+    assert new_tenders == [shared, new]
+    assert analyse.load_seen_urls(seen_file, keyword="AI") == {
+        previously_seen.url,
+        shared.url,
+    }
+    assert analyse.load_seen_urls(seen_file, keyword="Quantum") == {
+        shared.url,
+        new.url,
+    }
+    output = capsys.readouterr().out
+    assert output.count("\033[96mMonitoring theme:") == 2
+    assert output.count("\033[93mMonitoring keyword:") == 3
+    assert "\033[96mMonitoring theme: AI\033[0m" in output
+    assert "\033[93mMonitoring keyword: chatbot\033[0m" in output
+    assert "Matched keyword(s): chatbot, llm, qml" in output
+    assert "Matched keyword(s): qml" in output
+    assert "Monitoring IT-Ausschreibung tenders for keyword: " \
+        "AI: chatbot, llm, Quantum: qml" in output
+    assert "- Shared result" in output
+
+
+def test_cli_monitor_defaults_to_all_configured_theme_keywords(
+    monkeypatch, capsys
+):
+    monkeypatch.setattr("sys.argv", ["analyse.py", "monitor"])
+    called = {}
+
+    def fake_monitor(**kwargs):
+        called.update(kwargs)
+        return []
+
+    monkeypatch.setattr(analyse_cli, "monitor", fake_monitor)
+
+    analyse_cli.main()
+
+    assert called["keyword"] == analyse_cli.THEME_KEYWORDS
+    assert called["seen_file"] == "seen.json"
+    assert capsys.readouterr().out == "No new tenders found.\n"
+
+
+def test_cli_search_defaults_to_each_configured_theme(
+    monkeypatch, capsys
+):
+    monkeypatch.setattr("sys.argv", ["analyse.py", "search"])
+    calls = []
+
+    def fake_search(keywords, headless):
+        calls.append((keywords, headless))
+        return [Tender(keywords[0], "https://example.com/shared")]
+
+    monkeypatch.setattr(analyse_cli, "search_tenders", fake_search)
+
+    analyse_cli.main()
+
+    assert calls == [
+        (keywords, True)
+        for keywords in analyse_cli.THEME_KEYWORDS.values()
+    ]
+    output = capsys.readouterr().out
+    assert output.count("\033[96mMonitoring theme:") == len(
+        analyse_cli.THEME_KEYWORDS
+    )
+    assert output.count("\033[93mMonitoring keyword:") == sum(
+        len(keywords) for keywords in analyse_cli.THEME_KEYWORDS.values()
+    )
+    assert "\033[96mMonitoring theme: AI\033[0m" in output
+    assert "\033[93mMonitoring keyword: chatbot\033[0m" in output
+    assert output.count("https://example.com/shared") == 1
+
+
+def test_cli_theme_keywords_cover_every_term_from_check():
+    assert {
+        keyword
+        for theme_keywords in analyse_cli.THEME_KEYWORDS.values()
+        for keyword in theme_keywords
+    } == {
+        "penetration",
+        "chatbot",
+        "llm",
+        "KI",
+        "roboter",
+        "drohne",
+        "quantum",
+        "quanten",
+        "generative",
+        "predictive",
+        "qml",
+        "qnn",
+        "pqc",
+        "pet",
+        "red",
+        "blue",
+        "inspektion",
+        "atex",
+    }
 
 
 @patch("analyse.mailer.smtplib.SMTP")

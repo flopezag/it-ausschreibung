@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -102,14 +103,19 @@ def save_seen_urls(urls: Iterable[str], seen_file: str | Path, keyword: str | No
     buckets[bucket_name] = updated_urls
 
     if keyword is None and len(buckets) == 1 and "__global__" in buckets:
-        path.write_text(json.dumps(sorted(updated_urls), indent=2), encoding="utf-8")
+        content = json.dumps(sorted(updated_urls), indent=2)
+    else:
+        payload: dict[str, list[str]] = {}
+        for name, values in buckets.items():
+            payload[name] = sorted(values)
+        content = json.dumps(payload, indent=2)
+
+    if path.exists() and path.read_text(encoding="utf-8") == content:
         return
 
-    payload: dict[str, list[str]] = {}
-    for name, values in buckets.items():
-        payload[name] = sorted(values)
-
-    path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    if path.exists():
+        shutil.copy2(path, Path(f"{path}.bk"))
+    path.write_text(content, encoding="utf-8")
 
 
 def save_results_csv(tenders: Iterable["models.Tender"], output_file: str | Path) -> None:

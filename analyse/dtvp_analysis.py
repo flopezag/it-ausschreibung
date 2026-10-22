@@ -6,6 +6,7 @@ import csv
 import json
 import re
 import shutil
+import time
 from dataclasses import asdict, dataclass, replace
 from datetime import date, datetime
 from pathlib import Path
@@ -168,36 +169,44 @@ def _extract_page_announcements(
     return announcements
 
 
+def announcement_identity(announcement: DtvpAnnouncement) -> str:
+    if announcement.url:
+        return announcement.url
+    return "\x1f".join((announcement.title, announcement.published, announcement.publisher))
+
+
+def _merge_metadata(*values: str) -> str:
+    merged: list[str] = []
+    for value in values:
+        for item in value.split("; "):
+            item = item.strip()
+            if item and item not in merged:
+                merged.append(item)
+    return "; ".join(merged)
+
+
 def merge_announcement(
-    announcements: dict[tuple[str, str], DtvpAnnouncement],
+    announcements: dict[str, DtvpAnnouncement],
     announcement: DtvpAnnouncement,
 ) -> None:
-    key = (announcement.title, announcement.url or "")
+    key = announcement_identity(announcement)
     existing = announcements.get(key)
     if existing is None:
-        announcements[key] = announcement
+        announcements[key] = replace(
+            announcement,
+            keyword=_merge_metadata(announcement.keyword),
+            theme=_merge_metadata(announcement.theme),
+        )
         return
 
-    keywords = [value for value in existing.keyword.split("; ") if value]
-    themes = [value for value in existing.theme.split("; ") if value]
-    if announcement.keyword and announcement.keyword not in keywords:
-        keywords.append(announcement.keyword)
-    if announcement.theme and announcement.theme not in themes:
-        themes.append(announcement.theme)
-    merged_keyword = "; ".join(keywords)
-    merged_theme = "; ".join(themes)
+    merged_keyword = _merge_metadata(existing.keyword, announcement.keyword)
+    merged_theme = _merge_metadata(existing.theme, announcement.theme)
     if merged_keyword != existing.keyword or merged_theme != existing.theme:
         announcements[key] = replace(
             existing,
             keyword=merged_keyword,
             theme=merged_theme,
         )
-
-
-def announcement_identity(announcement: DtvpAnnouncement) -> str:
-    if announcement.url:
-        return announcement.url
-    return "\x1f".join((announcement.title, announcement.published, announcement.publisher))
 
 
 def _subtract_months(day: date, months: int) -> date:
@@ -282,7 +291,8 @@ def search_dtvp_announcements(
 
     print(f"Including announcements published on or after {date_cutoff:%d.%m.%Y}.")
     print()
-    unique: dict[tuple[str, str], DtvpAnnouncement] = {}
+    unique: dict[str, DtvpAnnouncement] = {}
+    run_started_at = time.perf_counter()
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(headless=headless)
         try:
@@ -298,6 +308,7 @@ def search_dtvp_announcements(
                     print(
                         f"{KEYWORD_COLOR}Monitoring DTVP keyword: {keyword}{COLOR_RESET}"
                     )
+                    keyword_started_at = time.perf_counter()
                     page.goto(DTVP_URL, wait_until="domcontentloaded")
                     _dismiss_cookie_dialog(page)
                     page.locator("#searchText").fill(keyword)
@@ -308,10 +319,13 @@ def search_dtvp_announcements(
                     page.locator("#listTemplate h2").first.wait_for(
                         state="visible", timeout=60000
                     )
+                    results_loaded_at = time.perf_counter()
 
-                    keyword_results: dict[tuple[str, str], DtvpAnnouncement] = {}
+                    keyword_results: dict[str, DtvpAnnouncement] = {}
                     current_page, total_pages = _page_numbers(page)
+                    page_count = 0
                     while True:
+                        page_count += 1
                         for announcement in _extract_page_announcements(
                             page, keyword, theme.name
                         ):
@@ -333,13 +347,24 @@ def search_dtvp_announcements(
                             timeout=60000,
                         )
                         current_page, total_pages = _page_numbers(page)
+                    keyword_finished_at = time.perf_counter()
                     print_keyword_results(
                         keyword, keyword_results.values(), theme=theme.name
+                    )
+                    print(
+                        f"Timing DTVP keyword {keyword!r}: "
+                        f"search/setup/results wait "
+                        f"{results_loaded_at - keyword_started_at:.2f}s; "
+                        f"pagination/extraction "
+                        f"{keyword_finished_at - results_loaded_at:.2f}s; "
+                        f"{page_count} page(s), "
+                        f"{keyword_finished_at - keyword_started_at:.2f}s total."
                     )
                 print("\n\n")
         finally:
             browser.close()
 
+    print(f"DTVP search completed in {time.perf_counter() - run_started_at:.2f}s.")
     return list(unique.values())
 
 
@@ -388,7 +413,7 @@ def save_seen_announcements(
     path = Path(seen_file)
     path.parent.mkdir(parents=True, exist_ok=True)
 
-    unique: dict[tuple[str, str], DtvpAnnouncement] = {}
+    unique: dict[str, DtvpAnnouncement] = {}
     for announcement in announcements:
         merge_announcement(unique, announcement)
 
@@ -452,7 +477,7 @@ def main() -> None:
         seen_keys=seen_keys,
     )
 
-    saved: dict[tuple[str, str], DtvpAnnouncement] = {}
+    saved: dict[str, DtvpAnnouncement] = {}
     for announcement in [*seen_announcements, *found_announcements]:
         merge_announcement(saved, announcement)
     save_seen_announcements(saved.values(), args.seen_file)
@@ -464,7 +489,12 @@ def main() -> None:
         announcement_identity(announcement) not in seen_keys
         for announcement in found_announcements
     )
-    print(f"Saved {len(saved)} announcement(s) to {args.seen_file}; {new_count} new.")
+    announcement_label = "announcement" if len(saved) == 1 else "announcements"
+    new_announcement_label = "announcement" if new_count == 1 else "announcements"
+    print(
+        f"History contains {len(saved)} {announcement_label} total; "
+        f"{new_count} new {new_announcement_label} this run."
+    )
 
 
 if __name__ == "__main__":
