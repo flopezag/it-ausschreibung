@@ -360,6 +360,7 @@ def search_dtvp_announcements(
                         f"{page_count} page(s), "
                         f"{keyword_finished_at - keyword_started_at:.2f}s total."
                     )
+                print("\n")
                 print("\n\n")
         finally:
             browser.close()

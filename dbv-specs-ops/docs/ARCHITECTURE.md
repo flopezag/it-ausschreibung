@@ -1,0 +1,131 @@
+# Architecture: IT-Ausschreibung Monitor
+
+> **Phase:** Plan
+> **Status:** As-is architecture, inferred from the repository.
+> **Last reviewed:** 2026-11-10
+
+## 1. Stack
+
+| Layer | Technology | Current use |
+| --- | --- | --- |
+| Language | Python 3.14.7 | CLI, parsing, monitoring and portal-specific search modules |
+| Browser automation | Playwright 1.63.0 / Chromium | Public procurement portal searches |
+| Testing | pytest 9.1.1 | Unit and mocked browser-flow tests |
+| Persistence | JSON files | Per-source URL/announcement histories |
+| Export | Python CSV support | Optional tender/announcement output |
+| Scheduling | Windows Task Scheduler (`schtasks`) | Optional weekday monitor task |
+| CI/CD | None identified in the current project configuration | No release/deployment workflow confirmed |
+
+## 2. Repository Structure
+
+```text
+/
+├── analyse.py                 # Main CLI entry point
+├── analyse/
+│   ├── cli.py                  # search, monitor, combined-monitor, and task commands
+│   ├── browser_search.py       # IT-Ausschreibung search, metadata extraction, and links
+│   ├── combined_monitor.py     # five-source orchestration, cross-source dedup, combined CSV
+│   ├── monitor.py              # seen/new comparison, theme aggregation and reporting
+│   ├── storage.py              # IT-Ausschreibung JSON history and CSV persistence
+│   ├── models.py               # Shared Tender record
+│   ├── mailer.py               # SMTP email utility
+│   ├── tasks.py                # Windows scheduled task creation
+│   ├── dtvp_analysis.py        # Standalone DTVP themed/CPV announcement search
+│   ├── brandenburg_analysis.py # Standalone Brandenburg portal search
+│   ├── bw_analysis.py          # Standalone Baden-Württemberg portal search
+│   └── giz_analysis.py         # Standalone GIZ portal search
+├── tests/
+│   ├── test_analyse.py
+│   ├── test_combined_monitor.py
+│   ├── test_dtvp_analysis.py
+│   ├── test_brandenburg_analysis.py
+│   ├── test_bw_analysis.py
+│   └── test_giz_analysis.py
+├── requirements.txt
+└── requirements-dev.txt
+```
+
+The repository also contains JSON histories, CSV exports, and backup files.
+These are operational data, not source modules.
+
+## 3. Component Relationships
+
+- `analyse.py` delegates to `analyse.cli`.
+- `analyse.cli` selects configured/custom keywords and calls
+  `browser_search.search_tenders` for the main website.
+- `analyse.monitor` calls `browser_search`, reads and updates histories using
+  `storage`, reports current-run match counts, optionally exports CSV, and
+  formats notification content.
+- `analyse.combined_monitor` runs each portal's structured search workflow,
+  keeps portal histories independent, normalizes current-run records, merges
+  only records sharing title, publication date, client, and URL, and reports
+  source status plus an optional combined CSV.
+- `analyse.mailer` contains SMTP delivery functionality. The current monitor
+  flow does not report a delivery result, and the send-related tests are
+  commented pending that status contract.
+- `analyse.tasks` constructs a Windows Task Scheduler command that invokes the
+  main CLI.
+- `dtvp_analysis`, `brandenburg_analysis`, `bw_analysis`, and `giz_analysis`
+  are standalone portal workflows. Each owns its portal-specific theme/search
+  configuration, parsing, date handling, JSON history, CSV output, and
+  command-line entry point.
+- Each portal retains its standalone command and history workflow. The
+  `monitor-all` command orchestrates all five search functions without
+  replacing their portal-specific parsing or persistence.
+
+## 4. Persistence and Interfaces
+
+- The main monitor stores URLs in `seen_it-ausschreibung.json` by default.
+  `SEEN_FILE` and `--seen-file` can select another path.
+- DTVP, Brandenburg, Baden-Württemberg, and GIZ use `seen_dtvp.json`,
+  `seen_brandenburg.json`, `seen_bw.json`, and `seen_giz.json` by default.
+- The BW search uses the portal's active-tender category and records its
+  `Rechtsrahmen` field alongside the shared announcement fields.
+- The main IT-Ausschreibung result model includes publication date, deadline,
+  publication type, and the public `Auftraggeber` address as client information.
+  The combined monitor maps each portal's publisher field into the shared
+  `client` export column.
+- Histories are deduplicated and changed JSON files are backed up with a `.bk`
+  suffix. The main storage module preserves the existing global-list format
+  and supports keyword buckets.
+- CSV output is a user-selected filesystem path; there is no database.
+- User interaction is through command-line arguments and printed output.
+- Combined notice lines include the merged source, theme, and keyword values
+  so operators can see which configured searches matched each result.
+
+## 5. External Integrations and Constraints
+
+- Procurement portals are public third-party websites, not stable application
+  APIs. Their markup, response time, and search behavior are outside the
+  project's control.
+- Playwright's Chromium installation is required for live browser searches;
+  parsing and most persistence logic can be unit-tested without live sites.
+- SMTP credentials are expected from environment-based configuration; secrets
+  must not be committed.
+- Windows scheduled tasks are platform-specific; direct CLI execution remains
+  available on other supported environments.
+
+## 6. Current Technical Decisions (Inferred)
+
+- **ADR [INFERRED] — Separate per-portal search implementations:** Keep site
+  selectors and parsing isolated because portal interfaces differ.
+- **ADR [INFERRED] — File-based history:** Use local JSON and optional CSV
+  rather than introducing a database for the current operator-oriented CLI.
+- **ADR [INFERRED] — Browser automation for portal search:** Use Playwright
+  because these public procurement sites expose interactive search forms.
+- **ADR [INFERRED] — No app-facing agent API or embedded AI:** The current
+  product is a CLI monitor, not an AI-integrated web/desktop application.
+
+Do not treat these inferred decisions as immutable; update them when the owner
+confirms a change.
+
+## 7. Known Constraints and Risks
+
+- Portal-specific selectors can break after website changes.
+- Search results can be broad, and the site may cap/paginate results.
+- Cross-source duplicate detection depends on matching title, publication
+  date, client, and URL; the main IT-Ausschreibung client value is the public
+  Auftraggeber address rather than an organization name.
+- The root README documents usage; the full test suite is the principal
+  regression check. The latest run passed 80 tests and failed one existing
+  Brandenburg theme-configuration expectation.

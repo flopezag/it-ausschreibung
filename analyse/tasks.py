@@ -38,7 +38,7 @@ def install_windows_task(
     command = (
         f'"{python_executable}" "{script_path}" monitor '
         f'--keyword "{kw_str}" '
-        f'--seen-file "%USERPROFILE%\\it-ausschreibung-seen.json" '
+        f'--seen-file "%USERPROFILE%\\seen_it-ausschreibung.json" '
         f'--csv-file "%USERPROFILE%\\it-ausschreibung-results.csv"'
     )
 

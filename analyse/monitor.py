@@ -180,6 +180,11 @@ def monitor(
     if csv_file:
         save_results_csv(tenders, csv_file)
 
+    print(
+        f"Search complete: {len(tenders)} found, {len(new_tenders)} new, "
+        f"{len(tenders) - len(new_tenders)} already seen."
+    )
+
     if new_tenders:
         body = build_email_body(
             keyword,

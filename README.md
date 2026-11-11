@@ -1,8 +1,8 @@
 # IT-Ausschreibung Monitor
 
 Searches `it-ausschreibung.de` for tenders, tracks previously seen results, and
-includes separate searches for announcements on DTVP and Brandenburg's
-Vergabemarktplatz.
+includes standalone searches for announcements on DTVP and the Brandenburg,
+Baden-Württemberg, and GIZ procurement portals.
 
 ## Requirements and setup
 
@@ -58,7 +58,8 @@ Search all configured keyword themes:
 python analyse.py search
 ```
 
-Monitor all configured keyword themes and save new results in `seen.json`:
+Monitor all configured keyword themes and save new results in
+`seen_it-ausschreibung.json`:
 
 ```bash
 python analyse.py monitor
@@ -71,9 +72,27 @@ The configured terms from `check` are grouped in `analyse/cli.py`: AI
 searches all terms and deduplicates matching tender URLs.
 
 The `search` command prints unique tenders matching any configured term. The
-`monitor` command reports only tenders not already in history and lists the
-keyword(s) that matched each new tender. Its optional `--csv-file` exports all
-tenders found during that run, including tenders already in history.
+`monitor` command reports the total number of tenders found, how many are
+new, and how many were already in history, including when no new tenders are
+found. It lists details and matching keyword(s) for new tenders. Its optional
+`--csv-file` exports all tenders found during that run, including tenders
+already in history.
+
+Run all five portal monitors together and print only unique current-run
+matches:
+
+```bash
+python analyse.py monitor-all
+```
+
+Records are merged only when title, publication date, client, and link match;
+their sources and matching keywords/themes are combined and shown in brackets
+before each result, with multiple themes and keywords separated by commas. Add
+`--csv-file combined.csv` to export the results, or `--headed` to show the
+browsers. Each portal keeps its own history, and later searches continue if a
+source fails. The command reports failures and exits non-zero if any source or
+requested export fails. IT-Ausschreibung's public `Auftraggeber` address is
+used as the client value because its organization name is not shown publicly.
 
 To search or monitor a custom set of keywords, pass a comma-separated list:
 
@@ -101,12 +120,14 @@ python analyse.py monitor --keyword '{"a":"penetration","b":"it security"}'
 
 Both `search` and `monitor` accept `--csv-file results.csv` to export results.
 Use `--headed` to show the browser while a command runs; searches are headless
-by default. The monitor keeps previously seen URLs in `seen.json`, grouped by
+by default. The monitor keeps previously seen URLs in
+`seen_it-ausschreibung.json`, grouped by
 theme for the default search or by keyword set for a custom search, so later
 runs do not discard earlier search history. Choose a different history file
-with `--seen-file path/to/seen.json`. Before an existing
+with `--seen-file path/to/history.json`. Before an existing
 history file is updated, it is copied to the same path with `.bk` appended
-(for example, `seen.json.bk`).
+(for example, `seen_it-ausschreibung.json.bk`). Set `SEEN_FILE` to override
+the default history path.
 
 On Windows, `install-task` creates a weekday scheduled task. Point it to the
 project's `analyse.py` entry point and the Python executable inside the virtual
@@ -186,10 +207,58 @@ python -m analyse.brandenburg_analysis
 The search reports new matches published within the last two calendar months
 and accumulates deduplicated history in `seen_brandenburg.json`. The optional
 `--csv-file path/to/results.csv` exports the history, `--seen-file
-path/to/seen.json` selects another history file, and `--headed` displays the
+path/to/seen_brandenburg.json` selects another history file, and `--headed` displays the
 browser. Existing JSON history is backed up to `.bk` before changed data is
 saved; unchanged history does not replace the backup. Existing CSV output is
 backed up to `.bk` on each export.
+
+## Baden-Württemberg Vergabeplattform
+
+The standalone Baden-Württemberg search at
+`https://vergabe.landbw.de/NetServer` uses the same six themes and exact
+keywords listed in the Brandenburg section. It searches active tender notices,
+keeps the portal's legal framework (`Rechtsrahmen`) alongside the Brandenburg
+result fields, follows result pagination, and merges matching themes and
+keywords by notice URL.
+
+Run the search from the repository root:
+
+```bash
+python -m analyse.bw_analysis
+```
+
+The command reports new matches published within the last two calendar months
+and accumulates history in `seen_bw.json`. Use `--seen-file
+path/to/seen_bw.json` to select another history file, `--csv-file
+path/to/results.csv` to export the accumulated history, or `--headed` to show
+the browser. Existing JSON and CSV files are backed up to `.bk` before changed
+JSON history is saved or CSV output is replaced.
+
+## GIZ Vergabemarktplatz
+
+The standalone GIZ search uses the public extended-search page and searches
+the configured English-language keywords in three themes: AI, Cybersecurity,
+and Software/data. It deduplicates notices by project URL, combines matching
+keywords and themes, and filters by publication date.
+
+Run the default search from the repository root:
+
+```bash
+python -m analyse.giz_analysis
+```
+
+By default, it includes notices published in the last two calendar months.
+To search from a specific inclusive cutoff date, pass `--published-since` in
+ISO format; for example, to search since 1 August 2026:
+
+```bash
+python -m analyse.giz_analysis --published-since 2026-08-01
+```
+
+The accumulated history is saved to `seen_giz.json`; use `--seen-file` to
+choose another path. Pass `--csv-file giz_results.csv` to export the history,
+or `--headed` to display the browser. Existing JSON and CSV files are backed
+up to `.bk` before changed data is saved.
 
 ## Tests
 

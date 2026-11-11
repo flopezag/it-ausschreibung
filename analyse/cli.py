@@ -36,9 +36,19 @@ def parse_args() -> argparse.Namespace:
         "--keyword",
         help="Keyword(s) to monitor; by default, search all configured themes.",
     )
-    monitor_parser.add_argument("--seen-file", default=os.getenv("SEEN_FILE", "seen.json"))
+    monitor_parser.add_argument(
+        "--seen-file",
+        default=os.getenv("SEEN_FILE", "seen_it-ausschreibung.json"),
+    )
     monitor_parser.add_argument("--csv-file")
     monitor_parser.add_argument("--headed", action="store_true")
+
+    combined_parser = subparsers.add_parser(
+        "monitor-all",
+        help="Search all configured portals and show cross-portal unique results.",
+    )
+    combined_parser.add_argument("--csv-file", help="Export unique current-run results.")
+    combined_parser.add_argument("--headed", action="store_true")
 
     task_parser = subparsers.add_parser("install-task")
     task_parser.add_argument("--keyword", required=True)
@@ -89,6 +99,17 @@ def main() -> None:
             print(f"{len(new_tenders)} new tender(s) found.")
         else:
             print("No new tenders found.")
+
+    elif args.command == "monitor-all":
+        from analyse.combined_monitor import run_combined_monitor
+
+        status = run_combined_monitor(
+            headless=not args.headed,
+            csv_file=args.csv_file,
+            keyword_groups=THEME_KEYWORDS,
+        )
+        if status:
+            raise SystemExit(status)
 
     elif args.command == "install-task":
         install_windows_task(

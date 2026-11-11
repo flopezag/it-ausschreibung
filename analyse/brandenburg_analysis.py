@@ -50,27 +50,33 @@ class BrandenburgTheme:
 THEMES = (
     BrandenburgTheme(
         "AI",
-        ("Datenanalyse", "Entscheidungsunterstützung", "Sprachmodell"),
+        ("Datenanalyse", "Entscheidungsunterstützung", "Sprachmodell",
+         "Künstliche Intelligenz", "Maschinelles Lernen", "Generative KI", "Bildverarbeitung"),
     ),
     BrandenburgTheme(
         "Quantum",
-        ("Quantensoftware", "Quantenkommunikation", "Post-Quanten-Kryptographie"),
+        ("Quantensoftware", "Quantenkommunikation", "Post-Quanten-Kryptographie",
+         "Quantencomputing", "Quantencomputer", "Quantenalgorithmus", "Post-Quanten-Kryptographie"),
     ),
     BrandenburgTheme(
         "Cybersecurity",
-        ("NIS2", "KRITIS", "SIEM", "Identitätsmanagement"),
+        ("NIS2", "KRITIS", "SIEM", "Identitätsmanagement", "IT-Sicherheit", 
+         "Informationssicherheit", "Penetrationstest", "Schwachstellenanalyse", "ISMS"),
     ),
     BrandenburgTheme(
         "Robotics",
-        ("Autonome Navigation", "Cobot", "Missionsplanung"),
+        ("Autonome Navigation", "Cobot", "Missionsplanung", "Robotik", "Roboter", 
+         "Inspektionsroboter", "Drohne", "Fahrerloses Transportsystem"),
     ),
     BrandenburgTheme(
         "Software",
-        ("ECM", "CMS", "SBOM", "Identitätsmanagement", "Digitale Identität"),
+        ("ECM", "CMS", "SBOM", "Identitätsmanagement", "Digitale Identität", 
+         "Dokumentenmanagementsystem", "E-Akte", "DevSecOps", "Softwaretest", "Testautomatisierung"),
     ),
     BrandenburgTheme(
         "Cross-domain",
-        ("Forschungsprojekt", "Demonstrator", "Prototyp", "Machbarkeitsstudie", "Reallabor"),
+        ("Forschungsprojekt", "Demonstrator", "Prototyp", "Machbarkeitsstudie", "Reallabor",
+         "Generative KI", "Quantencomputing", "Post-Quanten-Kryptographie", "Robotik", "DevSecOps"),
     ),
 )
 

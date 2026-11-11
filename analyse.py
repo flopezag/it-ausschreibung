@@ -35,7 +35,7 @@ Email configuration is read from environment variables:
 Optional:
 
     SMTP_USE_TLS=true
-    SEEN_FILE=seen.json
+    SEEN_FILE=seen_it-ausschreibung.json
 """
 
 from __future__ import annotations
