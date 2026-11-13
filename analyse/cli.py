@@ -53,7 +53,7 @@ def parse_args() -> argparse.Namespace:
     task_parser = subparsers.add_parser("install-task")
     task_parser.add_argument("--keyword", required=True)
     task_parser.add_argument("--script-path", default=__file__)
-    task_parser.add_argument("--task-name", default="IT-Ausschreibung Monitor")
+    task_parser.add_argument("--task-name", default="Ausschreibungen Monitor")
     task_parser.add_argument("--python-executable", default=None)
 
     return parser.parse_args()

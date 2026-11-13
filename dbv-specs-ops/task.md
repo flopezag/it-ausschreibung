@@ -1,15 +1,17 @@
-# Project Backlog — IT-Ausschreibung Monitor
+# Project Backlog — Ausschreibungen Monitor
 
 ## Project Context
 
 * **Goal:** Find IT-related public procurement opportunities across multiple portals, retain their history, and make new notices reviewable.
-* **Current state:** Active development. The main IT-Ausschreibung monitor and standalone DTVP, Brandenburg, BW, and GIZ search modules exist.
-* **Last technical decision:** Keep portal-specific searches and histories independent; `monitor-all` merges current results only when normalized title, date, client, and link match.
-* **Next step:** Review the combined monitor output and consider unrelated baseline test/lint findings.
+* **Current state:** Active development. The main monitor and standalone DTVP, Brandenburg, BW, Berlin, Niedersachsen, ESA STAR, and GIZ search modules are present.
+* **Last technical decision:** Use `Ausschreibungen Monitor` as the application display name and default scheduled-task name; keep portal-specific names, module names, and data filenames unchanged.
+* **Validation:** ESA STAR tests passed (15); all 30 unique paths completed and all 32 rows reported zero results. Full suite: 122 passed, 1 known unrelated Brandenburg configuration failure. `dbv-lint.py --changed` reported no errors.
+* **Next step:** Review the known Brandenburg keyword-configuration mismatch; ESA STAR REQ-14 is complete.
 
 ## Checklist
 
 - [x] Search IT-Ausschreibung by keyword/theme, extract and deduplicate tender URLs.
+- [x] Rename the application display name to `Ausschreibungen Monitor` in project metadata, documentation, source headers, and the default scheduled-task label.
 - [x] Persist the main monitor's seen URLs in `seen_it-ausschreibung.json` by default, retaining support for `SEEN_FILE`/`--seen-file` overrides and `.bk` backups.
 - [x] Report total, new, and already-seen IT-Ausschreibung matches on every monitor run.
 - [x] Add `monitor-all` for five portals, four-field cross-source deduplication, and combined current-run CSV output (REQ-10).
@@ -20,9 +22,13 @@
 - [x] Add standalone Brandenburg search with publication-date filtering, URL deduplication, persistent history, and optional CSV output.
 - [x] Add standalone GIZ search for AI, Cybersecurity, and Software/data terms, including inclusive date filtering, pagination, persistent history, and optional CSV output.
 - [x] Add standalone Baden-Württemberg search using Brandenburg's six themes and exact keyword lists, with active-tender filtering, isolated history, date filtering, pagination, legal-framework export, and optional CSV output (REQ-11).
+- [x] Add standalone Berlin announcement search using the BW workflow, independent history, theme/keyword metadata, inclusive date filtering, pagination, and optional CSV export (REQ-12).
+- [x] Add standalone Niedersachsen announcement search using the BW theme set, active tender type filter, independent history, pagination, and optional CSV export (REQ-13).
+- [x] Implement standalone ESA STAR search using Country `DE`, full live Technology Tree paths, transparent mappings for five screenshot/live discrepancies, per-row reporting, independent history, and optional CSV export (REQ-14).
+- [x] Color ESA STAR category and technology-keyword output using the shared terminal colors (REQ-14).
 - [x] Add English ChatGPT phase prompts for Spec, Plan, Build, Test, Simplify, Ship, and optional Maintain.
 - [x] Complete initial project specifications, as-is architecture, and project context after owner confirmation.
-- [ ] Resolve the pre-existing Brandenburg keyword-configuration test failure; latest full run: 80 passed, 1 failed.
+- [ ] Resolve the pre-existing Brandenburg keyword-configuration test failure; latest full run: 107 passed, 1 failed.
 - [x] Specify and approve REQ-10: run all five portals together, preserve independent histories, report per-source failures, and merge only exact title/date/client/link matches.
 - [ ] Improve CLI help to clearly describe `search`, `monitor`, and `install-task`.
 - [ ] Add focused tests for `analyse.cli.parse_args()` and `analyse.cli.main()`, including empty keywords, invalid JSON, and malformed CSV-style keyword input.
@@ -37,7 +43,7 @@
 - [ ] Consider a dry-run mode that searches without changing seen-history files.
 - [ ] Consider configuration for SMTP settings and default history/export paths.
 - [ ] Add Windows scheduled-task uninstall support or detect/update an existing task.
-- [ ] Add portal integrations: evergabe.de, Bayern, Berlin, Niedersachsen, NRW, ESA-STAR, and EU Funding & Tenders.
+- [ ] Add portal integrations: evergabe.de, Bayern, NRW, and EU Funding & Tenders.
 - [ ] Decide whether packaging (`pyproject.toml`), Docker/portable environment support, or a status endpoint is needed for the intended deployment model; a status endpoint is only applicable if the CLI becomes a resident service.
 - [ ] Clarify whether the historic grouped-keyword monitor verification item is fully covered by the current attribution tests and a live run.
 
@@ -55,7 +61,8 @@
 
 ## Context Snapshot
 
-> **Last updated:** 2026-11-11
-> **Exact point:** The five-portal `monitor-all` workflow is implemented; result lines show matched sources, themes, and comma-separated keywords. Focused combined-monitor tests pass.
-> **Pending:** Review a normal live `monitor-all` run; resolve the recorded test/lint findings and remaining product decisions.
-> **Next action:** Take up the CLI/test quality backlog and verify the combined output against a live run.
+> **Last updated:** 2026-11-13
+> **Exact point:** ESA STAR REQ-14 implementation and validation are complete.
+> **Decision:** Use live ESA taxonomy paths for selectors, retain the supplied screenshot paths in each row, and report both values. No additional date cutoff.
+> **Validation:** 15 focused tests passed; the live run resolved 30 unique paths and reported zero results for all 32 rows. Full suite: 122 passed, 1 known unrelated Brandenburg configuration failure.
+> **Next action:** Address the separate Brandenburg mismatch if requested.

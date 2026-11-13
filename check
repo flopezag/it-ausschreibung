@@ -1,1 +1,11 @@
+# All portals analysis
 python analyse.py monitor-all
+
+# One by One
+python analyse.py monitor
+python -m analyse.dtvp_analysis
+python -m analyse.brandenburg_analysis
+python -m analyse.bw_analysis
+python -m analyse.giz_analysis
+python -m analyse.berlin_analysis
+python -m analyse.niedersachsen_analysis

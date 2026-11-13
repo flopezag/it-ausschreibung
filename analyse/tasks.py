@@ -9,7 +9,7 @@ from typing import Iterable
 def install_windows_task(
     keyword: str | Iterable[str] | dict[str, str],
     script_path: str | Path,
-    task_name: str = "IT-Ausschreibung Monitor",
+    task_name: str = "Ausschreibungen Monitor",
     python_executable: str | Path | None = None,
 ) -> None:
     """Create/update a Windows Task Scheduler job.
@@ -21,7 +21,7 @@ def install_windows_task(
     script_path : str | Path
         Path to the Python script to run.
     task_name : str, optional
-        Scheduled task name, by default "IT-Ausschreibung Monitor".
+        Scheduled task name, by default "Ausschreibungen Monitor".
     python_executable : str | Path | None, optional
         Python executable to use, by default "python".
     """

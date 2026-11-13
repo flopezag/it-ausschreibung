@@ -1,5 +1,5 @@
 # =============================================================================
-# IT-Ausschreibung Monitor — Monitor public procurement portals for IT-related tenders.
+# Ausschreibungen Monitor — Monitor public procurement portals for IT-related tenders.
 # Copyright attribution and application license have not been specified.
 # Built with dbv-specs-ops · https://github.com/davidbuenov/dbv-specs-ops
 # =============================================================================

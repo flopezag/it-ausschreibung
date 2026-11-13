@@ -1,8 +1,9 @@
-# IT-Ausschreibung Monitor
+# Ausschreibungen Monitor
 
 Searches `it-ausschreibung.de` for tenders, tracks previously seen results, and
 includes standalone searches for announcements on DTVP and the Brandenburg,
-Baden-Württemberg, and GIZ procurement portals.
+Baden-Württemberg, Berlin, Niedersachsen, and GIZ procurement portals, plus
+intended calls from ESA STAR.
 
 ## Requirements and setup
 
@@ -233,6 +234,82 @@ path/to/seen_bw.json` to select another history file, `--csv-file
 path/to/results.csv` to export the accumulated history, or `--headed` to show
 the browser. Existing JSON and CSV files are backed up to `.bk` before changed
 JSON history is saved or CSV output is replaced.
+
+## Berlin Vergabeplattform
+
+The standalone Berlin search at
+`https://www.berlin.de/vergabeplattform/veroeffentlichungen/bekanntmachungen/`
+uses the same six themes and exact keywords listed in the Brandenburg section.
+It searches by keyword, follows the listing's pagination, and merges matching
+themes and keywords by the public tender detail URL. Results retain the
+publication date, deadline, procedure, and execution location shown by Berlin;
+the location is not treated as the contracting authority.
+
+Run the search from the repository root:
+
+```bash
+python -m analyse.berlin_analysis
+```
+
+The command reports new announcements published within the last two calendar
+months and accumulates history in `seen_berlin.json`. Use `--seen-file
+path/to/seen_berlin.json` to select another history file,
+`--csv-file path/to/results.csv` to export the accumulated history, or
+`--headed` to show the browser. Changed JSON history and existing CSV output
+are backed up to `.bk`. Berlin has its own standalone command and is not part
+of `monitor-all`.
+
+## Niedersachsen Vergabeplattform
+
+The standalone Niedersachsen search uses
+`https://vergabe.niedersachsen.de/Satellite/company/announcements/categoryOverview.do?method=showCategoryOverview`
+and the same six themes and exact keywords listed in the Brandenburg section.
+It submits the portal's extended-search form and selects the `Tender`
+publication category (“Ausschreibung”), excluding intended notices and awarded
+contracts. The result status may be shown as “Ausschreibung” or “TNW”.
+Published date, deadline (`nv` where none is listed), title, publication type,
+contracting rule, issuing authority, and public detail URL are retained.
+
+Run the search from the repository root:
+
+```bash
+python -m analyse.niedersachsen_analysis
+```
+
+The search includes notices published within the last two calendar months and
+accumulates history in `seen_niedersachsen.json`. Use `--seen-file` to select
+another history, `--csv-file path/to/results.csv` to export accumulated
+results, or `--headed` to show the browser. Changed JSON history and existing
+CSV output are backed up to `.bk`. The command is standalone and is not part
+of `monitor-all`.
+
+## ESA STAR intended calls
+
+The standalone ESA STAR search uses
+`https://esastar-publication-ext.sso.esa.int/ESATenderActions/filter/cfp_intended`,
+filters Country `DE`, and searches the full ESA Technology Keywords tree for
+each of the 32 supplied category/path rows. When the live tree differs from a
+supplied path, the search uses an explicit live-path mapping and prints both
+the supplied and selected paths. Terminal output highlights each category and
+technology keyword using the same colors as the other portal searches. The
+current mappings include an intermediate parent for two on-board
+machine-learning rows, portal spelling/spacing
+differences for two rows, and the live `I` Mission Control node where the
+supplied list says `II`. Repeated paths are queried once and reported for each
+associated row. The search uses the portal's current Intended listing without
+an additional local date cutoff.
+
+Run it from the repository root:
+
+```bash
+python -m analyse.esa_star_analysis
+```
+
+Results and history are kept separately in `seen_esa_star.json`. Use
+`--seen-file path/to/history.json` to select another history,
+`--csv-file path/to/results.csv` to export accumulated results, or `--headed`
+to show the browser. Changed JSON history and existing CSV output are backed
+up to `.bk`. ESA STAR is a standalone command and is not part of `monitor-all`.
 
 ## GIZ Vergabemarktplatz
 

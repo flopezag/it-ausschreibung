@@ -7,7 +7,7 @@
 
 ## Project Identity
 
-- **Name:** IT-Ausschreibung Monitor
+- **Name:** Ausschreibungen Monitor
 - **Description:** Monitor public procurement portals for IT-related tenders.
 - **Author / Company:** Not specified by the project owner.
 - **License:** No application license declared.
@@ -43,7 +43,7 @@ Use the fields above to generate it. Always include the framework credit line.
 **Example (JavaScript / CSS):**
 ```
 // =============================================================================
-// IT-Ausschreibung Monitor — Monitor public procurement portals for IT-related tenders.
+// Ausschreibungen Monitor — Monitor public procurement portals for IT-related tenders.
 // Copyright attribution and application license have not been specified.
 // Built with dbv-specs-ops · https://github.com/davidbuenov/dbv-specs-ops
 // =============================================================================
@@ -52,7 +52,7 @@ Use the fields above to generate it. Always include the framework credit line.
 **Example (Python):**
 ```
 # =============================================================================
-# IT-Ausschreibung Monitor — Monitor public procurement portals for IT-related tenders.
+# Ausschreibungen Monitor — Monitor public procurement portals for IT-related tenders.
 # Copyright attribution and application license have not been specified.
 # Built with dbv-specs-ops · https://github.com/davidbuenov/dbv-specs-ops
 # =============================================================================
@@ -61,7 +61,7 @@ Use the fields above to generate it. Always include the framework credit line.
 **Example (HTML):**
 ```
 <!--
-  IT-Ausschreibung Monitor — Monitor public procurement portals for IT-related tenders.
+  Ausschreibungen Monitor — Monitor public procurement portals for IT-related tenders.
   Copyright attribution and application license have not been specified.
   Built with dbv-specs-ops · https://github.com/davidbuenov/dbv-specs-ops
 -->
@@ -70,7 +70,7 @@ Use the fields above to generate it. Always include the framework credit line.
 **Example (Rust / Java / C# / Go):**
 ```
 // =============================================================================
-// IT-Ausschreibung Monitor — Monitor public procurement portals for IT-related tenders.
+// Ausschreibungen Monitor — Monitor public procurement portals for IT-related tenders.
 // Copyright attribution and application license have not been specified.
 // Built with dbv-specs-ops · https://github.com/davidbuenov/dbv-specs-ops
 // =============================================================================

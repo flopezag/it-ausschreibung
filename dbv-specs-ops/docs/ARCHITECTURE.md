@@ -1,8 +1,8 @@
-# Architecture: IT-Ausschreibung Monitor
+# Architecture: Ausschreibungen Monitor
 
 > **Phase:** Plan
 > **Status:** As-is architecture, inferred from the repository.
-> **Last reviewed:** 2026-11-10
+> **Last reviewed:** 2026-11-13
 
 ## 1. Stack
 
@@ -33,6 +33,9 @@
 │   ├── dtvp_analysis.py        # Standalone DTVP themed/CPV announcement search
 │   ├── brandenburg_analysis.py # Standalone Brandenburg portal search
 │   ├── bw_analysis.py          # Standalone Baden-Württemberg portal search
+│   ├── berlin_analysis.py      # Standalone Berlin announcement search
+│   ├── niedersachsen_analysis.py # Standalone Niedersachsen announcement search
+│   ├── esa_star_analysis.py    # Standalone ESA STAR intended-call search
 │   └── giz_analysis.py         # Standalone GIZ portal search
 ├── tests/
 │   ├── test_analyse.py
@@ -40,6 +43,9 @@
 │   ├── test_dtvp_analysis.py
 │   ├── test_brandenburg_analysis.py
 │   ├── test_bw_analysis.py
+│   ├── test_berlin_analysis.py
+│   ├── test_niedersachsen_analysis.py
+│   ├── test_esa_star_analysis.py
 │   └── test_giz_analysis.py
 ├── requirements.txt
 └── requirements-dev.txt
@@ -65,7 +71,8 @@ These are operational data, not source modules.
   commented pending that status contract.
 - `analyse.tasks` constructs a Windows Task Scheduler command that invokes the
   main CLI.
-- `dtvp_analysis`, `brandenburg_analysis`, `bw_analysis`, and `giz_analysis`
+- `dtvp_analysis`, `brandenburg_analysis`, `bw_analysis`, `berlin_analysis`,
+  `niedersachsen_analysis`, `esa_star_analysis`, and `giz_analysis`
   are standalone portal workflows. Each owns its portal-specific theme/search
   configuration, parsing, date handling, JSON history, CSV output, and
   command-line entry point.
@@ -77,10 +84,29 @@ These are operational data, not source modules.
 
 - The main monitor stores URLs in `seen_it-ausschreibung.json` by default.
   `SEEN_FILE` and `--seen-file` can select another path.
-- DTVP, Brandenburg, Baden-Württemberg, and GIZ use `seen_dtvp.json`,
-  `seen_brandenburg.json`, `seen_bw.json`, and `seen_giz.json` by default.
+- DTVP, Brandenburg, Baden-Württemberg, Berlin, Niedersachsen, ESA STAR, and
+  GIZ use `seen_dtvp.json`, `seen_brandenburg.json`, `seen_bw.json`,
+  `seen_berlin.json`, `seen_niedersachsen.json`, `seen_esa_star.json`, and
+  `seen_giz.json` by default. ESA STAR keeps its independent history in
+  `seen_esa_star.json`.
 - The BW search uses the portal's active-tender category and records its
   `Rechtsrahmen` field alongside the shared announcement fields.
+- The Berlin search uses the public Bekanntmachungen listing, keyword form,
+  start-based pagination, and external tender detail links. Its result record
+  retains procedure, execution location, publication date, and deadline, with
+  history isolated in `seen_berlin.json`.
+- The Niedersachsen search uses the public extended-search POST form, selects
+  the active `Tender` category (“Ausschreibung”; result rows can show
+  `Ausschreibung` or `TNW`), and reads its table pagination controls. It
+  retains publication type, contracting rule, issuing authority, deadline,
+  publication date, and detail URL in its independent history.
+- The ESA STAR search targets intended calls, filters Country `DE`, and
+  resolves full paths in the live Technology Keywords tree rather than using
+  the adjacent keyword label. It preserves each supplied row, explicitly maps
+  five supplied paths to their live equivalents, and reports both paths and
+  results per row. Duplicate live-path queries are merged while category and
+  path attribution are retained in independent history. It remains outside
+  `monitor-all`.
 - The main IT-Ausschreibung result model includes publication date, deadline,
   publication type, and the public `Auftraggeber` address as client information.
   The combined monitor maps each portal's publisher field into the shared
