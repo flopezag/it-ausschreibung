@@ -517,7 +517,7 @@ def test_main_uses_its_own_default_history_file(
 
     bw_analysis.main()
 
-    assert history_paths == ["seen_bw.json"]
+    assert history_paths == ["output/seen_bw.json"]
     assert capsys.readouterr().out == (
         "History contains 0 projects total; 0 new projects this run.\n"
     )

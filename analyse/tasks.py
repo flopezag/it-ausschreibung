@@ -27,6 +27,7 @@ def install_windows_task(
     """
     python_executable = str(python_executable or "python")
     script_path = str(Path(script_path).resolve())
+    output_dir = Path(__file__).resolve().parents[1] / "output"
 
     if isinstance(keyword, dict):
         kw_str = json.dumps(keyword)
@@ -38,7 +39,7 @@ def install_windows_task(
     command = (
         f'"{python_executable}" "{script_path}" monitor '
         f'--keyword "{kw_str}" '
-        f'--seen-file "%USERPROFILE%\\seen_it-ausschreibung.json" '
+        f'--seen-file "{output_dir / "seen_it-ausschreibung.json"}" '
         f'--csv-file "%USERPROFILE%\\it-ausschreibung-results.csv"'
     )
 

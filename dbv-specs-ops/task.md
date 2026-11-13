@@ -4,15 +4,16 @@
 
 * **Goal:** Find IT-related public procurement opportunities across multiple portals, retain their history, and make new notices reviewable.
 * **Current state:** Active development. The main monitor and standalone DTVP, Brandenburg, BW, Berlin, Niedersachsen, ESA STAR, and GIZ search modules are present.
-* **Last technical decision:** Use `Ausschreibungen Monitor` as the application display name and default scheduled-task name; keep portal-specific names, module names, and data filenames unchanged.
-* **Validation:** ESA STAR tests passed (15); all 30 unique paths completed and all 32 rows reported zero results. Full suite: 122 passed, 1 known unrelated Brandenburg configuration failure. `dbv-lint.py --changed` reported no errors.
+* **Last technical decision:** Store default portal history JSON and `.bk` backups under `output/`; keep custom `--seen-file` paths available.
+* **Validation:** Output-path portal/CLI tests: 118 passed, 1 known Brandenburg keyword-configuration failure; combined-monitor tests: 5 passed. `dbv-lint.py --changed` reported three existing return-placement errors in Brandenburg, DTVP, and GIZ plus one traceability warning.
 * **Next step:** Review the known Brandenburg keyword-configuration mismatch; ESA STAR REQ-14 is complete.
 
 ## Checklist
 
 - [x] Search IT-Ausschreibung by keyword/theme, extract and deduplicate tender URLs.
 - [x] Rename the application display name to `Ausschreibungen Monitor` in project metadata, documentation, source headers, and the default scheduled-task label.
-- [x] Persist the main monitor's seen URLs in `seen_it-ausschreibung.json` by default, retaining support for `SEEN_FILE`/`--seen-file` overrides and `.bk` backups.
+- [x] Persist the main monitor's seen URLs in `output/seen_it-ausschreibung.json` by default, retaining support for `SEEN_FILE`/`--seen-file` overrides and `.bk` backups.
+- [x] Store all default portal JSON histories and their `.bk` backups in the repository's `output/` directory.
 - [x] Report total, new, and already-seen IT-Ausschreibung matches on every monitor run.
 - [x] Add `monitor-all` for five portals, four-field cross-source deduplication, and combined current-run CSV output (REQ-10).
 - [x] Show matching source, theme, and keyword metadata on each combined CLI result.
@@ -62,7 +63,7 @@
 ## Context Snapshot
 
 > **Last updated:** 2026-11-13
-> **Exact point:** ESA STAR REQ-14 implementation and validation are complete.
+> **Exact point:** Default portal history JSON files and `.bk` backups have been moved to repository-root `output/`; defaults, documentation, and scheduled-task history paths now point there. Custom history paths and scheduled CSV output are unchanged.
 > **Decision:** Use live ESA taxonomy paths for selectors, retain the supplied screenshot paths in each row, and report both values. No additional date cutoff.
-> **Validation:** 15 focused tests passed; the live run resolved 30 unique paths and reported zero results for all 32 rows. Full suite: 122 passed, 1 known unrelated Brandenburg configuration failure.
-> **Next action:** Address the separate Brandenburg mismatch if requested.
+> **Validation:** Output-path portal/CLI tests: 118 passed with 1 known Brandenburg configuration failure; combined-monitor tests: 5 passed. The full suite was not rerun.
+> **Next action:** Address the existing Brandenburg configuration mismatch if requested.

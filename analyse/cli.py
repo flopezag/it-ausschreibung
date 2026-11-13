@@ -38,7 +38,7 @@ def parse_args() -> argparse.Namespace:
     )
     monitor_parser.add_argument(
         "--seen-file",
-        default=os.getenv("SEEN_FILE", "seen_it-ausschreibung.json"),
+        default=os.getenv("SEEN_FILE", "output/seen_it-ausschreibung.json"),
     )
     monitor_parser.add_argument("--csv-file")
     monitor_parser.add_argument("--headed", action="store_true")

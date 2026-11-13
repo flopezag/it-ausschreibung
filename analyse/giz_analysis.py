@@ -410,7 +410,7 @@ def main() -> None:
         description="Search GIZ's Vergabemarktplatz for tender announcements."
     )
     parser.add_argument("--headed", action="store_true", help="Show the browser.")
-    parser.add_argument("--seen-file", default="seen_giz.json")
+    parser.add_argument("--seen-file", default="output/seen_giz.json")
     parser.add_argument("--csv-file", help="Optionally export announcement history as CSV.")
     parser.add_argument(
         "--published-since",

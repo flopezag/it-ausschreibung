@@ -467,7 +467,7 @@ def save_announcements_csv(
 def main() -> None:
     parser = argparse.ArgumentParser(description="Search DTVP announcements by keyword and CPV.")
     parser.add_argument("--headed", action="store_true", help="Show the browser while searching.")
-    parser.add_argument("--seen-file", default="seen_dtvp.json")
+    parser.add_argument("--seen-file", default="output/seen_dtvp.json")
     parser.add_argument("--csv-file", help="Optionally export the saved announcement history as CSV.")
     args = parser.parse_args()
 

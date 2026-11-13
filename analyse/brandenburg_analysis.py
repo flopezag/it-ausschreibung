@@ -387,7 +387,7 @@ def main() -> None:
     parser.add_argument(
         "--headed", action="store_true", help="Show the browser while searching."
     )
-    parser.add_argument("--seen-file", default="seen_brandenburg.json")
+    parser.add_argument("--seen-file", default="output/seen_brandenburg.json")
     parser.add_argument(
         "--csv-file", help="Optionally export the saved announcement history as CSV."
     )

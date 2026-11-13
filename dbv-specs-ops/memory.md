@@ -3,8 +3,8 @@
 ## Active Context
 
 - **Development state:** Python CLI that searches public procurement portals. The main IT-Ausschreibung search and standalone DTVP, Brandenburg, BW, Berlin, Niedersachsen, ESA STAR, and GIZ modules are present.
-- **Immediate focus:** ESA STAR REQ-14 is implemented and validated; email delivery status is a separate known gap.
-- **Validation:** ESA STAR focused tests passed (15); a live search completed for all 30 unique paths and reported 0 results for each of the 32 rows. The full suite has 122 passing tests and the same pre-existing Brandenburg keyword-configuration failure. `dbv-lint.py --changed` reports no errors.
+- **Immediate focus:** Default portal JSON histories and `.bk` backups now live under repository-root `output/`; configurable `--seen-file` paths and scheduled CSV output are unchanged.
+- **Validation:** The output-path portal/CLI tests passed (118) with one known Brandenburg keyword-configuration failure; combined-monitor tests passed (5). `dbv-lint.py --changed` still reports three existing return-placement errors in Brandenburg, DTVP, and GIZ plus a traceability warning.
 - **Owner-confirmed adoption baseline:** Python/Playwright/Chromium/pytest, local JSON history, optional CSV output, English SDD documentation, no integrated desktop AI, and no agent-facing web API.
 - **Still unspecified:** Contributor count, author/company attribution, and the application's license.
 
@@ -15,10 +15,11 @@
 - **2026-10-23 — Browser automation [INFERRED]:** Use Playwright/Chromium for the interactive procurement portals.
 - **2026-10-23 — Preserve framework changelog [CONFIRMED by repository evidence]:** `dbv-specs-ops/CHANGELOG.md` identifies itself as the changelog for dbv-specs-ops. Do not add application release entries there. The project owner must decide the product changelog location.
 - **2026-11-11 — Combined portal result identity [CONFIRMED]:** The combined CLI searches all five configured portals and merges results only when normalized title, publication date, client, and URL match; source names and keyword/theme metadata remain visible. For IT-Ausschreibung, use the public `Auftraggeber` address as client data when the organization name is unavailable.
-- **2026-11-13 — Berlin announcement fields [CONFIRMED]:** The Berlin listing exposes an execution location rather than a named contracting authority in its cards; retain it as `location`. Keep the Berlin module and `seen_berlin.json` independent and do not add it to the five-source `monitor-all` flow.
-- **2026-11-13 — Niedersachsen tender scope [CONFIRMED]:** Select the `Tender` publication category and exclude `ExAnte`/`ExPost`. Result rows can display `Ausschreibung` or `TNW`; retain those displayed values and the separate contracting rule. Keep history in `seen_niedersachsen.json` and do not add it to `monitor-all`.
+- **2026-11-13 — Berlin announcement fields [CONFIRMED]:** The Berlin listing exposes an execution location rather than a named contracting authority in its cards; retain it as `location`. Keep the Berlin module and `output/seen_berlin.json` independent and do not add it to the five-source `monitor-all` flow.
+- **2026-11-13 — Niedersachsen tender scope [CONFIRMED]:** Select the `Tender` publication category and exclude `ExAnte`/`ExPost`. Result rows can display `Ausschreibung` or `TNW`; retain those displayed values and the separate contracting rule. Keep history in `output/seen_niedersachsen.json` and do not add it to `monitor-all`.
 - **2026-11-13 — ESA STAR path reconciliation [CONFIRMED]:** Use the live ESA Technology Keywords tree as the selector when it differs from the supplied screenshot. Preserve and report both the original row path and the exact selected live path; keep all 32 row/category associations and query each unique live path once. Do not impose an additional date cutoff.
 - **2026-11-13 — Product name [CONFIRMED]:** Use `Ausschreibungen Monitor` as the application display name and default Windows scheduled-task name. Preserve portal names, module names, data filenames, and the repository path.
+- **2026-11-13 — Output location [CONFIRMED]:** Store default portal history JSON and its `.bk` backup in repository-root `output/`; keep configurable `--seen-file` overrides and framework/configuration JSON in their existing locations.
 
 ## Lessons Learned
 

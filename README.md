@@ -5,6 +5,9 @@ includes standalone searches for announcements on DTVP and the Brandenburg,
 Baden-Württemberg, Berlin, Niedersachsen, and GIZ procurement portals, plus
 intended calls from ESA STAR.
 
+Default JSON histories and their `.bk` backups are stored in the repository's
+`output/` directory. You can override a history location with `--seen-file`.
+
 ## Requirements and setup
 
 The project is configured for Python 3.14.7 and uses a virtual environment so
@@ -60,7 +63,7 @@ python analyse.py search
 ```
 
 Monitor all configured keyword themes and save new results in
-`seen_it-ausschreibung.json`:
+`output/seen_it-ausschreibung.json`:
 
 ```bash
 python analyse.py monitor
@@ -122,13 +125,17 @@ python analyse.py monitor --keyword '{"a":"penetration","b":"it security"}'
 Both `search` and `monitor` accept `--csv-file results.csv` to export results.
 Use `--headed` to show the browser while a command runs; searches are headless
 by default. The monitor keeps previously seen URLs in
-`seen_it-ausschreibung.json`, grouped by
+`output/seen_it-ausschreibung.json`, grouped by
 theme for the default search or by keyword set for a custom search, so later
 runs do not discard earlier search history. Choose a different history file
 with `--seen-file path/to/history.json`. Before an existing
 history file is updated, it is copied to the same path with `.bk` appended
-(for example, `seen_it-ausschreibung.json.bk`). Set `SEEN_FILE` to override
+(for example, `output/seen_it-ausschreibung.json.bk`). Set `SEEN_FILE` to override
 the default history path.
+
+All portals' default JSON histories and their `.bk` backups are stored in the
+repository-root `output/` directory. A custom `--seen-file` keeps its backup
+beside the selected file.
 
 On Windows, `install-task` creates a weekday scheduled task. Point it to the
 project's `analyse.py` entry point and the Python executable inside the virtual
@@ -169,7 +176,8 @@ theme and keyword in the JSON history and CSV export. Run the search with:
 python -m analyse.dtvp_analysis
 ```
 
-It reports new matches, saves the accumulated history to `seen_dtvp.json`, and
+It reports new matches, saves the accumulated history to
+`output/seen_dtvp.json`, and
 searches announcements published within the last two calendar months (including
 the cutoff date). Existing history is retained even if entries are older than
 the search window, with announcements deduplicated by their URL and matching
@@ -206,7 +214,7 @@ python -m analyse.brandenburg_analysis
 ```
 
 The search reports new matches published within the last two calendar months
-and accumulates deduplicated history in `seen_brandenburg.json`. The optional
+and accumulates deduplicated history in `output/seen_brandenburg.json`. The optional
 `--csv-file path/to/results.csv` exports the history, `--seen-file
 path/to/seen_brandenburg.json` selects another history file, and `--headed` displays the
 browser. Existing JSON history is backed up to `.bk` before changed data is
@@ -229,7 +237,7 @@ python -m analyse.bw_analysis
 ```
 
 The command reports new matches published within the last two calendar months
-and accumulates history in `seen_bw.json`. Use `--seen-file
+and accumulates history in `output/seen_bw.json`. Use `--seen-file
 path/to/seen_bw.json` to select another history file, `--csv-file
 path/to/results.csv` to export the accumulated history, or `--headed` to show
 the browser. Existing JSON and CSV files are backed up to `.bk` before changed
@@ -252,7 +260,7 @@ python -m analyse.berlin_analysis
 ```
 
 The command reports new announcements published within the last two calendar
-months and accumulates history in `seen_berlin.json`. Use `--seen-file
+months and accumulates history in `output/seen_berlin.json`. Use `--seen-file
 path/to/seen_berlin.json` to select another history file,
 `--csv-file path/to/results.csv` to export the accumulated history, or
 `--headed` to show the browser. Changed JSON history and existing CSV output
@@ -277,7 +285,7 @@ python -m analyse.niedersachsen_analysis
 ```
 
 The search includes notices published within the last two calendar months and
-accumulates history in `seen_niedersachsen.json`. Use `--seen-file` to select
+accumulates history in `output/seen_niedersachsen.json`. Use `--seen-file` to select
 another history, `--csv-file path/to/results.csv` to export accumulated
 results, or `--headed` to show the browser. Changed JSON history and existing
 CSV output are backed up to `.bk`. The command is standalone and is not part
@@ -305,7 +313,7 @@ Run it from the repository root:
 python -m analyse.esa_star_analysis
 ```
 
-Results and history are kept separately in `seen_esa_star.json`. Use
+Results and history are kept separately in `output/seen_esa_star.json`. Use
 `--seen-file path/to/history.json` to select another history,
 `--csv-file path/to/results.csv` to export accumulated results, or `--headed`
 to show the browser. Changed JSON history and existing CSV output are backed
@@ -332,7 +340,7 @@ ISO format; for example, to search since 1 August 2026:
 python -m analyse.giz_analysis --published-since 2026-08-01
 ```
 
-The accumulated history is saved to `seen_giz.json`; use `--seen-file` to
+The accumulated history is saved to `output/seen_giz.json`; use `--seen-file` to
 choose another path. Pass `--csv-file giz_results.csv` to export the history,
 or `--headed` to display the browser. Existing JSON and CSV files are backed
 up to `.bk` before changed data is saved.

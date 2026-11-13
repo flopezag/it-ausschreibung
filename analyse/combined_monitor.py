@@ -63,11 +63,11 @@ CSV_COLUMNS = (
 )
 
 HISTORY_FILES = {
-    "IT-Ausschreibung": "seen_it-ausschreibung.json",
-    "DTVP": "seen_dtvp.json",
-    "Brandenburg": "seen_brandenburg.json",
-    "Baden-Württemberg": "seen_bw.json",
-    "GIZ": "seen_giz.json",
+    "IT-Ausschreibung": "output/seen_it-ausschreibung.json",
+    "DTVP": "output/seen_dtvp.json",
+    "Brandenburg": "output/seen_brandenburg.json",
+    "Baden-Württemberg": "output/seen_bw.json",
+    "GIZ": "output/seen_giz.json",
 }
 
 

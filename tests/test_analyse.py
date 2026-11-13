@@ -437,7 +437,7 @@ def test_cli_monitor_defaults_to_all_configured_theme_keywords(
     analyse_cli.main()
 
     assert called["keyword"] == analyse_cli.THEME_KEYWORDS
-    assert called["seen_file"] == "seen_it-ausschreibung.json"
+    assert called["seen_file"] == "output/seen_it-ausschreibung.json"
     assert capsys.readouterr().out == "No new tenders found.\n"
 
 
@@ -569,7 +569,12 @@ def test_install_windows_task_creates_weekday_7am_task(mock_run, tmp_path):
     assert "/TR" in args
     task_command = args[args.index("/TR") + 1]
     assert "penetration" in task_command
-    assert r"%USERPROFILE%\seen_it-ausschreibung.json" in task_command
+    expected_history = (
+        Path(__file__).resolve().parents[1]
+        / "output"
+        / "seen_it-ausschreibung.json"
+    )
+    assert str(expected_history) in task_command
     assert mock_run.call_args.kwargs["check"] is True
 
 

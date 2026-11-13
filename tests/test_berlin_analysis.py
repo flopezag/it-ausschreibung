@@ -465,7 +465,7 @@ def test_main_uses_independent_default_history_and_reports_new_count(
 
     berlin_analysis.main()
 
-    assert history_paths == ["seen_berlin.json"]
+    assert history_paths == ["output/seen_berlin.json"]
     assert capsys.readouterr().out == (
         "History contains 2 projects total; 1 new project this run.\n"
     )

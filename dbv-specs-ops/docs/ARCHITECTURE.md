@@ -51,8 +51,8 @@
 └── requirements-dev.txt
 ```
 
-The repository also contains JSON histories, CSV exports, and backup files.
-These are operational data, not source modules.
+The repository's `output/` directory contains JSON histories and their
+backups. These are operational data, not source modules.
 
 ## 3. Component Relationships
 
@@ -82,19 +82,22 @@ These are operational data, not source modules.
 
 ## 4. Persistence and Interfaces
 
-- The main monitor stores URLs in `seen_it-ausschreibung.json` by default.
+- The main monitor stores URLs in `output/seen_it-ausschreibung.json` by
+  default.
   `SEEN_FILE` and `--seen-file` can select another path.
 - DTVP, Brandenburg, Baden-Württemberg, Berlin, Niedersachsen, ESA STAR, and
-  GIZ use `seen_dtvp.json`, `seen_brandenburg.json`, `seen_bw.json`,
-  `seen_berlin.json`, `seen_niedersachsen.json`, `seen_esa_star.json`, and
-  `seen_giz.json` by default. ESA STAR keeps its independent history in
-  `seen_esa_star.json`.
+  GIZ keep separate histories in `output/seen_dtvp.json`,
+  `output/seen_brandenburg.json`, `output/seen_bw.json`,
+  `output/seen_berlin.json`, `output/seen_niedersachsen.json`,
+  `output/seen_esa_star.json`, and `output/seen_giz.json`.
+- Default JSON histories and their `.bk` backups are stored in the repository
+  `output/` directory; callers may override a history with `--seen-file`.
 - The BW search uses the portal's active-tender category and records its
   `Rechtsrahmen` field alongside the shared announcement fields.
 - The Berlin search uses the public Bekanntmachungen listing, keyword form,
   start-based pagination, and external tender detail links. Its result record
   retains procedure, execution location, publication date, and deadline, with
-  history isolated in `seen_berlin.json`.
+  history isolated in `output/seen_berlin.json`.
 - The Niedersachsen search uses the public extended-search POST form, selects
   the active `Tender` category (“Ausschreibung”; result rows can show
   `Ausschreibung` or `TNW`), and reads its table pagination controls. It
@@ -105,8 +108,8 @@ These are operational data, not source modules.
   the adjacent keyword label. It preserves each supplied row, explicitly maps
   five supplied paths to their live equivalents, and reports both paths and
   results per row. Duplicate live-path queries are merged while category and
-  path attribution are retained in independent history. It remains outside
-  `monitor-all`.
+  path attribution are retained in independent history at
+  `output/seen_esa_star.json`. It remains outside `monitor-all`.
 - The main IT-Ausschreibung result model includes publication date, deadline,
   publication type, and the public `Auftraggeber` address as client information.
   The combined monitor maps each portal's publisher field into the shared
@@ -153,5 +156,6 @@ confirms a change.
   date, client, and URL; the main IT-Ausschreibung client value is the public
   Auftraggeber address rather than an organization name.
 - The root README documents usage; the full test suite is the principal
-  regression check. The latest run passed 80 tests and failed one existing
-  Brandenburg theme-configuration expectation.
+  regression check. The latest targeted portal/CLI run passed 118 tests and
+  failed one known Brandenburg theme-configuration expectation; all five
+  combined-monitor tests passed. The full suite was not rerun.
